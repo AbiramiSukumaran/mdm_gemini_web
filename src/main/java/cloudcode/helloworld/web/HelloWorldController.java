@@ -26,6 +26,10 @@ import cloudcode.helloworld.web.NearbyStationsResponse;
  * A simple Spring Boot controller for handling web requests.
  */
 
+/*
+* The methods read from BigQuery. 
+* Remember to replace the table name with your table where you have stored the distance data.
+*/
 
 @RestController
 public final class HelloWorldController {
