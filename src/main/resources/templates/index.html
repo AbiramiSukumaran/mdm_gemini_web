@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Citi Bike Station Explorer</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh3E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+</head>
+<body>
+  <div class="container">
+    <h1>Citi Bike Station Explorer</h1>
+    <p>Select a station from the dropdown below to see its standardized address and nearby stations.</p>
+    <form>
+      <div class="form-group">
+        <label for="station-name">Station Name</label>
+        <select class="form-control" id="station-name">
+          <option value="">Select a station</option>
+          <!-- Populate this dropdown with station names from the BigQuery database table `abis-345004.mdm_gemini.CITIBIKE_STATIONS_EMBEDDINGS` and column "Station_Name" -->
+          <option th:each="p : ${stationNames}" th:value="${p}" th:text="${p}"></option> 
+        </select>
+      </div>
+     
+    </form>
+    <br>
+    <div id="results">
+      <!-- This div will contain the table of nearby stations -->
+    </div>
+  </div>
+
+  <script>
+    // Get the dropdown element
+    const stationNameDropdown = document.getElementById('station-name');
+
+    // Get the results div
+    const resultsDiv = document.getElementById('results');
+
+    // Create a new XMLHttpRequest object
+    const xhr = new XMLHttpRequest();
+
+    // Add an event listener for the dropdown's change event
+    stationNameDropdown.addEventListener('change', function() {
+      // Get the selected station name
+      var stationName = this.value;
+      // Encode the station name before sending it in the request
+      const encodedStationName = encodeURIComponent(stationName);
+      stationName = encodedStationName;
+      
+      // If a station name is selected, make a request to the server to get nearby stations
+      if (stationName) {
+        
+        xhr.open('GET', `/station-details?stationName=${stationName}`);
+        xhr.send();
+      } else {
+        // If no station name is selected, clear the results div
+        resultsDiv.innerHTML = '';
+      }
+    });
+
+    // Add an event listener for the xhr's load event
+    xhr.addEventListener('load', function() {
+      // Get the response from the server
+      
+      var response = JSON.parse(this.responseText);
+        
+      // Create a table to display the nearby stations
+      const table = document.createElement('table');
+      table.classList.add('table');
+      table.classList.add('table-striped');
+
+      // Create a table header row
+      const headerRow = document.createElement('tr');
+      const headerCells = ['', '', ''];
+      headerCells.forEach(headerCell => {
+        const th = document.createElement('th');
+        th.innerText = headerCell;
+        headerRow.appendChild(th);
+      });
+      table.appendChild(headerRow);
+
+      // Create a table body
+      const tbody = document.createElement('tbody');
+
+
+      const row = document.createElement('tr');
+
+const stationNameCell = document.createElement('td');
+
+stationNameCell.innerText = response.stationName;
+row.appendChild(stationNameCell);
+
+const stationAddressCell = document.createElement('td');
+var stationAddressValue = JSON.parse(response.stationAddress);
+var DOOR_NUMBER =  stationAddressValue.DOOR_NUMBER;
+var STREET_ADDRESS = stationAddressValue.STREET_ADDRESS;
+var CITY = stationAddressValue.CITY;
+var STATE = stationAddressValue.STATE;
+var COUNTRY = stationAddressValue.COUNTRY;
+var ZIP = stationAddressValue.ZIPCODE;
+var addrString = '';
+if(DOOR_NUMBER){
+  addrString = DOOR_NUMBER + ", ";
+}
+if(STREET_ADDRESS){
+  addrString = addrString + STREET_ADDRESS + ", ";
+}
+if(CITY){
+  addrString = addrString + CITY + ", ";
+}
+if(STATE){
+  addrString = addrString + STATE + ", ";
+}
+if(COUNTRY){
+  addrString = addrString + COUNTRY + ", ";
+}
+if(ZIP){
+  addrString = addrString + ZIP;
+} else{
+  addrString = addrString.substring(0, addrString.length - 1);
+}
+stationAddressCell.innerText =  addrString; 
+row.appendChild(stationAddressCell);
+
+const generateNearbyStationsButtonCell = document.createElement('td');
+const generateNearbyStationsButton = document.createElement('button');
+generateNearbyStationsButton.classList.add('btn');
+generateNearbyStationsButton.classList.add('btn-primary');
+generateNearbyStationsButton.innerText = 'Get 5 Nearby Stations';
+generateNearbyStationsButton.addEventListener('click', function() {
+  // Get the station name of the row
+  var stationName = response.stationName;
+  const encodedStationNameNear = encodeURIComponent(stationName);
+      stationName = encodedStationNameNear;
+ // alert(stationName);
+// Create a new XMLHttpRequest object
+const xhrNear = new XMLHttpRequest();
+
+  // Make a request to the server to get nearby stations
+  xhrNear.open('GET', `/nearby-stations?stationName=${stationName}`);
+  xhrNear.send();
+
+  xhrNear.addEventListener('load', function() {
+  //alert(this.responseText);
+  var responseNear = JSON.parse(this.responseText);
+      const row = document.createElement('tr');
+        const stationNameCell = document.createElement('td');
+        stationNameCell.innerText = 'Nearby Stations: ';
+        row.appendChild(stationNameCell);
+        tbody.appendChild(row);
+    // Add a row for each nearby station
+    responseNear.nearbyStations.forEach(nearbyStation => {
+        const row = document.createElement('tr');
+        const stationNameCell = document.createElement('td');
+        stationNameCell.innerText = nearbyStation.stationName;
+        row.appendChild(stationNameCell);
+        tbody.appendChild(row);
+      });
+    });
+});
+generateNearbyStationsButtonCell.appendChild(generateNearbyStationsButton);
+row.appendChild(generateNearbyStationsButtonCell);
+
+tbody.appendChild(row);
+
+      table.appendChild(tbody);
+
+      // Add the table to the results div
+      resultsDiv.innerHTML = '';
+      resultsDiv.appendChild(table);
+    });
+  </script>
+</body>
+</html>
